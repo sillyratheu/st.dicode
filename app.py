@@ -2,28 +2,30 @@ import streamlit as st
 import torch
 import torch.nn as nn
 from huggingface_hub import hf_hub_download
-from tokenizers import Tokenizer
 from transformers import PreTrainedTokenizerFast
-import os
 
-st.set_page_title_co_config = st.set_page_config(page_title="Shahajjo_Dicode AI", layout="centered")
+st.set_page_config(page_title="Shahajjo_Dicode AI", layout="centered")
 
 st.title("💻 Shahajjo_Dicode - HTML/CSS Web Generator")
 st.write("আপনার কাস্টম স্ক্র্যাচড মডেল দিয়ে প্রফেশনাল ওয়েবসাইট কোড তৈরি করুন!")
 
-# ব্যবহারকারী বা সিক্রেট থেকে Hugging Face Token নেওয়া
-HF_TOKEN = st.text_input("Enter your Hugging Face Token (HF_TOKEN):", type="password")
+# Streamlit secrets থেকে অটো টোকেন রিড করবে
+try:
+    HF_TOKEN = st.secrets["HF_TOKEN"]
+except Exception as e:
+    HF_TOKEN = None
+
 REPO_ID = "Vidclip/Shahajjo_Dicode"
 
 @st.cache_resource
 def load_model_and_tokenizer(token):
     if not token:
-        return None, None, None
+        return None, None, "HF_TOKEN not found in Streamlit Secrets!"
     
     try:
-        # ফাইলগুলো Hugging Face থেকে ডাউনলোড করা
+        # Hugging Face থেকে ফাইলগুলো ডাউনলোড করা
         tokenizer_path = hf_hub_download(repo_id=REPO_ID, filename="tokenizer.json", repo_type="model", token=token)
-        model_path = hf_hub_download(repo_id=REPO_ID, filename="model.pth", repo_type="model", token=token) # অথবা pytorch_model.bin হলে নাম ঠিক করে দেবেন
+        model_path = hf_hub_download(repo_id=REPO_ID, filename="model.pth", repo_type="model", token=token)
         
         # টোকেনাইজার লোড
         tokenizer = PreTrainedTokenizerFast(
@@ -34,7 +36,7 @@ def load_model_and_tokenizer(token):
         )
         tokenizer.pad_token = tokenizer.eos_token
         
-        # কাস্টম কজুয়াল ট্রান্সফর্মার আর্কিটেকচার ডিফাইন (যেমনটা ট্রেনিংয়ে ছিল)
+        # কাস্টম কজুয়াল ট্রান্সফর্মার আর্কিটেকচার
         class ScratchCausalTransformer(nn.Module):
             def __init__(self, vocab_size, d_model=256, n_heads=4, num_layers=4, max_len=256):
                 super().__init__()
@@ -70,13 +72,13 @@ def load_model_and_tokenizer(token):
         return None, None, str(e)
 
 if HF_TOKEN:
-    with st.spinner("Downloading model & tokenizer from Hugging Face..."):
+    with st.spinner("Downloading model & tokenizer securely from Hugging Face..."):
         model, tokenizer, status = load_model_and_tokenizer(HF_TOKEN)
         
     if status == "Success":
         st.success("Model loaded successfully from Hugging Face!")
         
-        user_prompt = st.text_area("Enter your prompt (e.g., Make a website for chocolate with buy button):")
+        user_prompt = st.text_area("Enter your prompt (e.g., Create an e-commerce product card for premium chocolate with price and buy button):")
         
         if st.button("Generate Code"):
             if user_prompt:
@@ -84,9 +86,9 @@ if HF_TOKEN:
                     input_text = f"[PROMPT] {user_prompt} [CODE]"
                     input_ids = tokenizer.encode(input_text, return_tensors="pt")
                     
-                    # জেনারেশন লজিক (Next Token Prediction)
+                    # জেনারেশন লজিক
                     with torch.no_grad():
-                        for _ in range(150): # ম্যাক্স টোকেন লেন্থ
+                        for _ in range(150):
                             outputs = model(input_ids)
                             next_token_logits = outputs[:, -1, :]
                             next_token = torch.argmax(next_token_logits, dim=-1).unsqueeze(0)
@@ -97,11 +99,13 @@ if HF_TOKEN:
                                 
                     generated_text = tokenizer.decode(input_ids[0], skip_special_tokens=False)
                     
-                    # শুধু কোড অংশটুকু আলাদা করা
                     if "[CODE]" in generated_text:
                         code_output = generated_text.split("[CODE]")[-1].replace("</s>", "").strip()
                     else:
                         code_output = generated_text
+                        
+                    # টোকেনাইজারের 'Ġ' ক্যারেক্টার ক্লিন করার কোড
+                    code_output = code_output.replace("Ġ", " ").replace("Ċ", "\n")
                         
                     st.subheader("Generated HTML/CSS Output:")
                     st.code(code_output, language="html")
@@ -110,4 +114,4 @@ if HF_TOKEN:
     else:
         st.error(f"Error loading model: {status}")
 else:
-    st.info("Please enter your Hugging Face Token above to proceed.")
+    st.error("HF_TOKEN is missing! Please configure it in Streamlit Secrets.")
