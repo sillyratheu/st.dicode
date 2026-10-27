@@ -36,9 +36,7 @@ def load_model_and_tokenizer(token):
         )
         tokenizer.pad_token = tokenizer.eos_token
         
-        # কাস্টম কজুয়াল ট্রান্সফর্মার আর্কিটেকচার
-        class       
-  # কাস্টম কজুয়াল ট্রান্সফর্মার আর্কিটেকচার (max_len বাড়িয়ে 512 করে দেওয়া হলো)
+        # কাস্টম ক্যাজুয়াল ট্রান্সফর্মার আর্কিটেকচার (max_len 512 সেট করা হয়েছে)
         class ScratchCausalTransformer(nn.Module):
             def __init__(self, vocab_size, d_model=256, n_heads=4, num_layers=4, max_len=512):
                 super().__init__()
@@ -57,7 +55,7 @@ def load_model_and_tokenizer(token):
 
             def forward(self, input_ids):
                 batch_size, seq_len = input_ids.shape
-                # যদি সিকোয়েন্স লেন্থ max_len এর চেয়ে বেশি হয়ে যায়, তবে সেফ থাকার জন্য ট্রাংকেট বা ক্লিপ করে নেওয়া
+                # সিকোয়েন্স লেংথ max_len এর বেশি হলে সেফটির জন্য ট্রাংকেট করা
                 if seq_len > self.max_len:
                     input_ids = input_ids[:, -self.max_len:]
                     seq_len = self.max_len
@@ -71,7 +69,6 @@ def load_model_and_tokenizer(token):
                 return self.fc_out(x)
 
         model = ScratchCausalTransformer(vocab_size=len(tokenizer), d_model=256, n_heads=4, num_layers=4, max_len=512)
-
         model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
         model.eval()
         
@@ -94,9 +91,9 @@ if HF_TOKEN:
                     input_text = f"[PROMPT] {user_prompt} [CODE]"
                     input_ids = tokenizer.encode(input_text, return_tensors="pt")
                     
-                    # জেনারেশন লজিক
+                    # জেনারেশন লজিক (টোকেন লিমিট বাড়িয়ে 250 দেওয়া হলো)
                     with torch.no_grad():
-                        for _ in range(300):
+                        for _ in range(250):
                             outputs = model(input_ids)
                             next_token_logits = outputs[:, -1, :]
                             next_token = torch.argmax(next_token_logits, dim=-1).unsqueeze(0)
