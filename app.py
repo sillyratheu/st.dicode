@@ -38,7 +38,7 @@ def load_model_and_tokenizer(token):
         
         # কাস্টম ক্যাজুয়াল ট্রান্সফর্মার আর্কিটেকচার (max_len 512 সেট করা হয়েছে)
         class ScratchCausalTransformer(nn.Module):
-            def __init__(self, vocab_size, d_model=256, n_heads=4, num_layers=4, max_len=512):
+            def __init__(self, vocab_size, d_model=256, n_heads=4, num_layers=4, max_len=256):
                 super().__init__()
                 self.token_embedding = nn.Embedding(vocab_size, d_model)
                 self.position_embedding = nn.Embedding(max_len, d_model)
@@ -68,7 +68,7 @@ def load_model_and_tokenizer(token):
                 x = self.transformer_blocks(x, mask=mask, is_causal=True)
                 return self.fc_out(x)
 
-        model = ScratchCausalTransformer(vocab_size=len(tokenizer), d_model=256, n_heads=4, num_layers=4, max_len=512)
+        model = ScratchCausalTransformer(vocab_size=len(tokenizer), d_model=256, n_heads=4, num_layers=4, max_len=256)
         model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
         model.eval()
         
