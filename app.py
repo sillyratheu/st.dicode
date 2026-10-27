@@ -37,8 +37,9 @@ def load_model_and_tokenizer(token):
         tokenizer.pad_token = tokenizer.eos_token
         
         # কাস্টম কজুয়াল ট্রান্সফর্মার আর্কিটেকচার
+        class         # কাস্টম কজুয়াল ট্রান্সফর্মার আর্কিটেকচার (max_len বাড়িয়ে 512 করে দেওয়া হলো)
         class ScratchCausalTransformer(nn.Module):
-            def __init__(self, vocab_size, d_model=256, n_heads=4, num_layers=4, max_len=256):
+            def __init__(self, vocab_size, d_model=256, n_heads=4, num_layers=4, max_len=512):
                 super().__init__()
                 self.token_embedding = nn.Embedding(vocab_size, d_model)
                 self.position_embedding = nn.Embedding(max_len, d_model)
@@ -55,6 +56,11 @@ def load_model_and_tokenizer(token):
 
             def forward(self, input_ids):
                 batch_size, seq_len = input_ids.shape
+                # যদি সিকোয়েন্স লেন্থ max_len এর চেয়ে বেশি হয়ে যায়, তবে সেফ থাকার জন্য ট্রাংকেট বা ক্লিপ করে নেওয়া
+                if seq_len > self.max_len:
+                    input_ids = input_ids[:, -self.max_len:]
+                    seq_len = self.max_len
+                    
                 positions = torch.arange(0, seq_len, device=input_ids.device).unsqueeze(0).expand(batch_size, seq_len)
                 tok_emb = self.token_embedding(input_ids)
                 pos_emb = self.position_embedding(positions)
@@ -63,7 +69,8 @@ def load_model_and_tokenizer(token):
                 x = self.transformer_blocks(x, mask=mask, is_causal=True)
                 return self.fc_out(x)
 
-        model = ScratchCausalTransformer(vocab_size=len(tokenizer), d_model=256, n_heads=4, num_layers=4, max_len=256)
+        model = ScratchCausalTransformer(vocab_size=len(tokenizer), d_model=256, n_heads=4, num_layers=4, max_len=512)
+
         model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
         model.eval()
         
