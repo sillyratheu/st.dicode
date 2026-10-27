@@ -88,7 +88,7 @@ if HF_TOKEN:
                     
                     # জেনারেশন লজিক
                     with torch.no_grad():
-                        for _ in range(150):
+                        for _ in range(450):
                             outputs = model(input_ids)
                             next_token_logits = outputs[:, -1, :]
                             next_token = torch.argmax(next_token_logits, dim=-1).unsqueeze(0)
