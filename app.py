@@ -37,7 +37,8 @@ def load_model_and_tokenizer(token):
         tokenizer.pad_token = tokenizer.eos_token
         
         # কাস্টম কজুয়াল ট্রান্সফর্মার আর্কিটেকচার
-        class         # কাস্টম কজুয়াল ট্রান্সফর্মার আর্কিটেকচার (max_len বাড়িয়ে 512 করে দেওয়া হলো)
+        class       
+  # কাস্টম কজুয়াল ট্রান্সফর্মার আর্কিটেকচার (max_len বাড়িয়ে 512 করে দেওয়া হলো)
         class ScratchCausalTransformer(nn.Module):
             def __init__(self, vocab_size, d_model=256, n_heads=4, num_layers=4, max_len=512):
                 super().__init__()
